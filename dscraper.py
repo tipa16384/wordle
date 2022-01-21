@@ -2,7 +2,7 @@ import re
 
 words = list()
 
-with open('fullwords.dat') as f:
+with open('gwords.dat') as f:
     words += re.findall(r'\w+', f.read())
 
 print (f"Length of words: {len(words)}")
@@ -11,6 +11,6 @@ print (f"Length of words: {len(words)}")
 print (f"First 20 words: {words[:20]}")
 
 # write words to wordle.txt
-with open('all.txt', 'w') as f:
+with open('dwordle.txt', 'w') as f:
     f.write('\n'.join(words))
 
