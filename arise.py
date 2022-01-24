@@ -38,7 +38,7 @@ def read_word_map():
         for line in f:
             word = line.strip()
             word_map[word] = True
-    if word_file_name == 'dwordle.txt':
+    if word_file_name[0] == 'd':
         deutsch = True
     print (get_phrase(0) % (len(word_map), word_file_name))
     return word_map
