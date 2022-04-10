@@ -1,0 +1,44 @@
+from itertools import combinations
+from collections import defaultdict
+
+vowels = 'aeiouy'
+
+# read a list of words from wordle.txt
+
+def read_words():
+    with open('wordle.txt', 'r') as f:
+        return [line.strip() for line in f]
+
+def checker(word_list):
+    for words in combinations(word_list, 3):
+        cword = ''.join(words)
+        # does cword contain all vowels?
+        if all(vowel in cword for vowel in vowels):
+            # does cword contain no repeated letters?
+            if len(set(cword)) == len(cword):
+                yield cword
+
+def get_letter_score(word_list: list) -> dict:
+    """
+    Get the letter score for each letter.
+    """
+    letter_score = defaultdict(int)
+    for word in word_list:
+        for letter in word:
+            letter_score[letter] += 1
+    return letter_score
+
+def sort_words_by_score(word_list: list) -> list:
+    """
+    Sort the words by score.
+    """
+    letter_score = get_letter_score(word_list)
+    return sorted(word_list, key=lambda word: sum(letter_score[letter] for letter in set(word)), reverse=True)
+
+
+if __name__ == '__main__':
+    word_list = read_words()
+    word_list = [c for c in checker(word_list)]
+    word_list = sort_words_by_score(word_list)
+    print (word_list[0])
+
