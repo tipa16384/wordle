@@ -19,7 +19,13 @@ class Pokemon:
     def __str__(self):
         return 'Pokemon: {} {} {} {} {} {}'.format(self.number, self.gen, self.name, self.type, self.height, self.weight)
 
-def calc_gen(pokemon_number):
+def calc_gen(name, pokemon_number):
+    if 'Hisuian ' in name or 'Galarian ' in name:
+        return 8
+    if 'Alolan ' in name:
+        return 7
+    if 'Mega ' in name:
+        return 6
     if pokemon_number >= 1 and pokemon_number <= 151:
         return 1
     elif pokemon_number >= 152 and pokemon_number <= 251:
@@ -61,7 +67,7 @@ def parse_pokedex():
             num = 0
         else:
             num = int(num_s)
-        gen = calc_gen(num)
+        gen = calc_gen(v, num)
         if gen < 1 or gen > 8:
             continue
         pokemon.append(Pokemon(gen, num, v, type, height, weight))
@@ -83,18 +89,18 @@ if __name__ == '__main__':
         pool = true_pool(xpool)
         # count the number of pokemon in the pool with value = True
         count = len(pool)
-        print ('There are {} pokemon in the pool'.format(count))
+        
         if count == 0:
             print ('There are no pokemon left in the pool')
             break
+        else:
+            print ('There are {} pokemon in the pool'.format(count))
+
         # pick a random pokemon in the pool with value True
         p = random.choice(pool)
 
-        if p is None:
-            print ('No more pokemon to pick')
-            break
         # prompt with the name of the Pokemon
-        print ('Try this pokemon: {}'.format(p))
+        print ('Try this pokemon: {}'.format(p.name))
         # get the user input
         while True:
             guess = input('Enter the response from Squirdle: ')
@@ -108,102 +114,139 @@ if __name__ == '__main__':
             print ('Invalid response')
         # if guess[0] is 'g', set all the pokemon in the pool with a different generation than the pokemon to False
         if guess[0] == 'g':
-            print ("Removing gen different from {}".format(p.gen))
+            trigger = False
             for px in pool:
                 if px.gen != p.gen:
+                    if not trigger:
+                        print ("Removing gen different from {}".format(p.gen))
+                        trigger = True
                     xpool[px] = False
         # if guess[0] is 'u', set all the pokemon with a generation less than or equal to the pokemon to False
         elif guess[0] == 'u':
-            print ("Removing gen less than or equal to {}".format(p.gen))
+            trigger = False
             for px in pool:
                 if px.gen <= p.gen:
-                    #print ("Removing {}".format(px))
+                    if not trigger:
+                        print ("Removing gen less than or equal to {}".format(p.gen))
+                        trigger = True
                     xpool[px] = False
         # if guess[0] is 'd', set all the pokemon with a generation greater than or equal to the pokemon to False
         elif guess[0] == 'd':
-            print ("Removing gen greater than or equal to {}".format(p.gen))
+            trigger = False
             for px in pool:
                 if px.gen >= p.gen:
-                    #print ("Removing {}".format(px))
+                    if not trigger:
+                        print ("Removing gen greater than or equal to {}".format(p.gen))
+                        trigger = True
                     xpool[px] = False
         types = guess[1:3]
         pool = true_pool(xpool)
         if types == 'yx' or (types == 'xx' and len(p.type) == 1):
+            trigger = False
             # remove all pokemon with just one type
-            print ("Removing pokemon with just one type")
             for px in pool:
                 if len(px.type) == 1:
+                    if not trigger:
+                        print ("Removing pokemon with just one type")
+                        trigger = True
                     xpool[px] = False
         pool = true_pool(xpool)
         if len(p.type) == 1 and types[1] == 'g':
-            print ("Removing multi-type pokemon")
+            trigger = False
             # set all pokemon with more than one type to False
             for px in pool:
                 if len(px.type) > 1:
+                    if not trigger:
+                        print ("Removing pokemon with more than one type")
+                        trigger = True
                     xpool[px] = False
             types = types[0] * 2
         pool = true_pool(xpool)
         # if types is 'xx', set all pokemon with either of the same types as the pokemon to False
         if types == 'xx':
-            print ('Removing types: {}'.format(p.type))
+            trigger = False
             for px in pool:
                 # if any of p.type is in px.type, set xpool[px] to False
                 if any(t in px.type for t in p.type):
+                    if not trigger:
+                        print ('Removing types: {}'.format(p.type))
+                        trigger = True
                     xpool[px] = False
-                    #print ('Removing: {} with types {}'.format(px.name, px.type))
         # if types is 'gg', set all pokemon that don't have both of the same types as the pokemon to False
         elif types == 'gg' or types == 'yy':
-            print ('Keeping types: {}'.format(p.type))
+            trigger = False
             for px in pool:
                 # if any of p.type is not in px.type, set xpool[px] to False
                 if not all(t in px.type for t in p.type):
-                    #print ('Removing: {} with types {}'.format(px.name, px.type))
+                    if not trigger:
+                        print ('Keeping types: {}'.format(p.type))
+                        trigger = True
                     xpool[px] = False
         # if types is 'xg' or types is 'gx', set all pokemon that don't have either of the same types as the pokemon to False
         elif types == 'xg' or types == 'gx' or types == 'xy' or types == 'yx':
-            print ('One type is correct: {}'.format(p.type))
+            trigger = False
             for px in pool:
                 # if at least one of p.type isn't in px.type, set xpool[px] to False
                 if not any(t in px.type for t in p.type):
-                    #print ('Removing: {} with types {}'.format(px.name, px.type))
+                    if not trigger:
+                        print ('One type is correct: {}'.format(p.type))
+                        trigger = True
                     xpool[px] = False
         # if guess[3] is 'g', set all pokemon in the pool with a height different from p to False
         pool = true_pool(xpool)
         if guess[3] == 'g':
+            trigger = False
             for px in pool:
                 if p.height != px.height:
-                    #print ('Removing: {} with height {}'.format(px.name, px.height))
+                    if not trigger:
+                        print ('Removing height different from {}'.format(p.height))
+                        trigger = True
                     xpool[px] = False
         # if guess[3] is 'u', set all pokemon in the pool with a height less than or equal to p to False
         elif guess[3] == 'u':
+            trigger = False
             for px in pool:
                 if px.height <= p.height:
-                    #print ('Removing: {} with height {}'.format(px.name, px.height))
+                    if not trigger:
+                        print ('Removing height less than or equal to {}'.format(p.height))
+                        trigger = True
                     xpool[px] = False
         # if guess[3] is 'd', set all pokemon in the pool with a height greater than or equal to p to False
         elif guess[3] == 'd':
+            trigger = False
             for px in pool:
                 if px.height >= p.height:
-                    #print ('Removing: {} with height {}'.format(px.name, px.height))
+                    if not trigger:
+                        print ('Removing height greater than or equal to {}'.format(p.height))
+                        trigger = True
                     xpool[px] = False
         # if guess[4] is 'g', set all pokemon in the pool with a weight different from p to False
         pool = true_pool(xpool)
         if guess[4] == 'g':
+            trigger = False
             for px in pool:
                 if px.weight != p.weight:
-                    #print ("Removing: {} with weight {}".format(px.name, px.weight))
+                    if not trigger:
+                        print ('Removing weight different from {}'.format(p.weight))
+                        trigger = True
                     xpool[px] = False
         # if guess[4] is 'u', set all pokemon in the pool with a weight less than or equal to p to False
         elif guess[4] == 'u':
+            trigger = False
             for px in pool:
                 if px.weight <= p.weight:
-                    #print ("Removing: {} with weight {}".format(px.name, px.weight))
+                    if not trigger:
+                        print ('Removing weight less than or equal to {}'.format(p.weight))
+                        trigger = True
                     xpool[px] = False
         # if guess[4] is 'd', set all pokemon in the pool with a weight greater than or equal to p to False
         elif guess[4] == 'd':
+            trigger = False
             for px in pool:
                 if px.weight >= p.weight:
-                    #print ("Removing: {} with weight {}".format(px.name, px.weight))
+                    if not trigger:
+                        print ('Removing weight greater than or equal to {}'.format(p.weight))
+                        trigger = True
                     xpool[px] = False
 
     
