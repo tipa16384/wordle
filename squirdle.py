@@ -9,41 +9,73 @@ class Pokemon:
         self.number = number
         self.name = name
         self.type = type
-
         self.height = height
         self.weight = weight
-
-    def get_stats(self):
-        pass
 
     def __str__(self):
         return 'Pokemon: {} {} {} {} {} {}'.format(self.number, self.gen, self.name, self.type, self.height, self.weight)
 
+class Rule:
+    def __init__(self, guess_rule, trigger_rule, log_rule):
+        self.guess_rule = guess_rule
+        self.trigger_rule = trigger_rule
+        self.log_rule = log_rule
+
+    def apply(self, pokemon, guess, pool_map):
+        pool = true_pool(pool_map)
+        if self.guess_rule(guess, pokemon):
+            trigger = False
+            for px in pool:
+                if self.trigger_rule(px, pokemon):
+                    if not trigger:
+                        print (self.log_rule(pokemon))
+                        trigger = True
+                    pool_map[px] = False
+
+rule_list = [
+    Rule(lambda guess, _: guess[0] == 'g', lambda px, p: px.gen != p.gen, lambda p: "!!!Removing gen different from {}".format(p.gen)),
+    Rule(lambda guess, _: guess[0] == 'u', lambda px, p: px.gen <= p.gen, lambda p: "!!!Removing gen less than or equal to {}".format(p.gen)),
+    Rule(lambda guess, _: guess[0] == 'd', lambda px, p: px.gen >= p.gen, lambda p: "!!!Removing gen greater than or equal to {}".format(p.gen)),
+    Rule(lambda guess, p: guess[1:3] == 'yx' or (guess[1:3] == 'xx' and len(p.type) == 1), lambda px, _: len(px.type) == 1, lambda p: "!!!Removing pokemon with just one type"),
+    Rule(lambda guess, _: guess[3] == 'g', lambda px, p: px.height != p.height, lambda p: "!!!Removing height different from {}".format(p.height)),
+    Rule(lambda guess, _: guess[3] == 'u', lambda px, p: px.height <= p.height, lambda p: "!!!Removing height less than or equal to {}".format(p.height)),
+    Rule(lambda guess, _: guess[3] == 'd', lambda px, p: px.height >= p.height, lambda p: "!!!Removing height greater than or equal to {}".format(p.height)),
+    Rule(lambda guess, _: guess[4] == 'g', lambda px, p: px.weight != p.weight, lambda p: "!!!Removing weight different from {}".format(p.weight)),
+    Rule(lambda guess, _: guess[4] == 'u', lambda px, p: px.weight <= p.weight, lambda p: "!!!Removing weight less than or equal to {}".format(p.weight)),
+    Rule(lambda guess, _: guess[4] == 'd', lambda px, p: px.weight >= p.weight, lambda p: "!!!Removing weight greater than or equal to {}".format(p.weight))
+]
+
 def calc_gen(name, pokemon_number):
-    if 'Hisuian ' in name or 'Galarian ' in name:
-        return 8
+    if 'Hisuian ' in name:
+        name = name[name.index('Hisuian '):]
+        return 8, name
+    if 'Galarian ' in name:
+        name = name[name.index('Galarian '):]
+        return 8, name
     if 'Alolan ' in name:
-        return 7
+        name = name[name.index('Alolan '):]
+        return 7, name
     if 'Mega ' in name:
-        return 6
+        name = name[name.index('Mega '):]
+        return 6, name
     if pokemon_number >= 1 and pokemon_number <= 151:
-        return 1
+        return 1, name
     elif pokemon_number >= 152 and pokemon_number <= 251:
-        return 2
+        return 2, name
     elif pokemon_number >= 252 and pokemon_number <= 386:
-        return 3
+        return 3, name
     elif pokemon_number >= 387 and pokemon_number <= 493:
-        return 4
+        return 4, name
     elif pokemon_number >= 494 and pokemon_number <= 649:
-        return 5
+        return 5, name
     elif pokemon_number >= 650 and pokemon_number <= 721:
-        return 6
+        return 6, name
     elif pokemon_number >= 722 and pokemon_number <= 809:
-        return 7
+        return 7, name
     elif pokemon_number >= 810 and pokemon_number <= 905:
-        return 8
+        return 8, name
     else:
-        return 9
+        return 9, name
 
 def parse_pokedex():
     tables = pd.read_html(pokedex_fn)
@@ -59,18 +91,16 @@ def parse_pokedex():
     # Create a list of Pokemon objects
     pokemon = []
     for k, v in names.items():
+        name = v
         type = types[k].strip().split(' ')
         height = float(heights[k])
         weight = float(weights[k])
         num_s = numbers[k]
-        if num_s == '???':
-            num = 0
-        else:
-            num = int(num_s)
-        gen = calc_gen(v, num)
-        if gen < 1 or gen > 8:
-            continue
-        pokemon.append(Pokemon(gen, num, v, type, height, weight))
+        num = 0 if num_s == '???' else int(num_s)
+        gen, name = calc_gen(name, num)
+        # if gen between 1 and 8 inclusive
+        if gen >= 1 and gen <= 8:
+            pokemon.append(Pokemon(gen, num, name, type, height, weight))
 
     print (pokemon[0])
 
@@ -112,44 +142,9 @@ if __name__ == '__main__':
             if len(guess) == 5 and all(c in 'udxgy' for c in guess):
                 break
             print ('Invalid response')
-        # if guess[0] is 'g', set all the pokemon in the pool with a different generation than the pokemon to False
-        if guess[0] == 'g':
-            trigger = False
-            for px in pool:
-                if px.gen != p.gen:
-                    if not trigger:
-                        print ("Removing gen different from {}".format(p.gen))
-                        trigger = True
-                    xpool[px] = False
-        # if guess[0] is 'u', set all the pokemon with a generation less than or equal to the pokemon to False
-        elif guess[0] == 'u':
-            trigger = False
-            for px in pool:
-                if px.gen <= p.gen:
-                    if not trigger:
-                        print ("Removing gen less than or equal to {}".format(p.gen))
-                        trigger = True
-                    xpool[px] = False
-        # if guess[0] is 'd', set all the pokemon with a generation greater than or equal to the pokemon to False
-        elif guess[0] == 'd':
-            trigger = False
-            for px in pool:
-                if px.gen >= p.gen:
-                    if not trigger:
-                        print ("Removing gen greater than or equal to {}".format(p.gen))
-                        trigger = True
-                    xpool[px] = False
+        for r in rule_list:
+            r.apply(p, guess, xpool)
         types = guess[1:3]
-        pool = true_pool(xpool)
-        if types == 'yx' or (types == 'xx' and len(p.type) == 1):
-            trigger = False
-            # remove all pokemon with just one type
-            for px in pool:
-                if len(px.type) == 1:
-                    if not trigger:
-                        print ("Removing pokemon with just one type")
-                        trigger = True
-                    xpool[px] = False
         pool = true_pool(xpool)
         if len(p.type) == 1 and types[1] == 'g':
             trigger = False
@@ -190,62 +185,6 @@ if __name__ == '__main__':
                 if not any(t in px.type for t in p.type):
                     if not trigger:
                         print ('One type is correct: {}'.format(p.type))
-                        trigger = True
-                    xpool[px] = False
-        # if guess[3] is 'g', set all pokemon in the pool with a height different from p to False
-        pool = true_pool(xpool)
-        if guess[3] == 'g':
-            trigger = False
-            for px in pool:
-                if p.height != px.height:
-                    if not trigger:
-                        print ('Removing height different from {}'.format(p.height))
-                        trigger = True
-                    xpool[px] = False
-        # if guess[3] is 'u', set all pokemon in the pool with a height less than or equal to p to False
-        elif guess[3] == 'u':
-            trigger = False
-            for px in pool:
-                if px.height <= p.height:
-                    if not trigger:
-                        print ('Removing height less than or equal to {}'.format(p.height))
-                        trigger = True
-                    xpool[px] = False
-        # if guess[3] is 'd', set all pokemon in the pool with a height greater than or equal to p to False
-        elif guess[3] == 'd':
-            trigger = False
-            for px in pool:
-                if px.height >= p.height:
-                    if not trigger:
-                        print ('Removing height greater than or equal to {}'.format(p.height))
-                        trigger = True
-                    xpool[px] = False
-        # if guess[4] is 'g', set all pokemon in the pool with a weight different from p to False
-        pool = true_pool(xpool)
-        if guess[4] == 'g':
-            trigger = False
-            for px in pool:
-                if px.weight != p.weight:
-                    if not trigger:
-                        print ('Removing weight different from {}'.format(p.weight))
-                        trigger = True
-                    xpool[px] = False
-        # if guess[4] is 'u', set all pokemon in the pool with a weight less than or equal to p to False
-        elif guess[4] == 'u':
-            trigger = False
-            for px in pool:
-                if px.weight <= p.weight:
-                    if not trigger:
-                        print ('Removing weight less than or equal to {}'.format(p.weight))
-                        trigger = True
-                    xpool[px] = False
-        # if guess[4] is 'd', set all pokemon in the pool with a weight greater than or equal to p to False
-        elif guess[4] == 'd':
-            trigger = False
-            for px in pool:
-                if px.weight >= p.weight:
-                    if not trigger:
-                        print ('Removing weight greater than or equal to {}'.format(p.weight))
                         trigger = True
                     xpool[px] = False
 
