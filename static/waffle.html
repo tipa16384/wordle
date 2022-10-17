@@ -1,0 +1,275 @@
+<!-- blank html page -->
+<html>
+
+<head>
+    <!-- jquery from cdn -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <title>Waffle</title>
+    <style>
+        td {
+            border: none;
+            width: 50px;
+            height: 50px;
+            /* centered vertically and horizontally */
+            text-align: center;
+            vertical-align: middle;
+            /* font arial sans serif */
+            font-family: Arial, sans-serif;
+            /* font size 20px */
+            font-size: 32px;
+            /* border radius 5px */
+            border-radius: 5px;
+            /* borders inside content */
+            box-sizing: border-box;
+        }
+
+        .selected {
+            /* 3 px black border */
+            border: 3px solid black;
+        }
+
+        /* table cell background color dark green */
+        .dark {
+            background-color: #006400;
+            /* text color white */
+            color: white;
+        }
+
+        .unselectable {
+            /* no border */
+            border: none;
+            /* bg color white */
+            background-color: white;
+        }
+
+        /* table cell background color yellow */
+        .light {
+            background-color: #FFFF00;
+            /* text color black */
+            color: black;
+        }
+
+        /* table cell background color light gray */
+        .none {
+            background-color: #D3D3D3;
+            /* text color black */
+            color: black;
+        }
+    </style>
+    <script>
+        const waffle_url = 'http://127.0.0.1:5000/waffle';
+        // when button with id "reset" is clicked, reset the board
+        $(document).ready(function () {
+            $("#reset").click(function () {
+                $("#solve").prop("disabled", true);
+                for (var i = 0; i < 5; i++) {
+                    for (var j = 0; j < 5; j++) {
+                        let cell = $("#" + i + j);
+                        if (cell.hasClass("unselectable")) {
+                            continue;
+                        }
+                        cell.removeClass("selected");
+                        cell.removeClass("dark");
+                        cell.removeClass("light");
+                        cell.removeClass("none");
+                        if (((i == 0) && (j == 0)) || ((i == 0) && (j == 4)) || ((i == 4) && (j == 0)) || ((i == 4) && (j == 4)) || ((i == 2) && (j == 2))) {
+                            cell.addClass("dark");
+                        } else {
+                            cell.addClass("none");
+                        }
+                        cell.text("");
+                    }
+                }
+            });
+        });
+        // when button with id "solve" is clicked, send a POST request to the waffle_url server with the 5x5 grid as a JSON object
+        $(document).ready(function () {
+            $("#solve").click(function () {
+                var grid = [];
+                for (var i = 0; i < 5; i++) {
+                    var row = [];
+                    for (var j = 0; j < 5; j++) {
+                        let cell = $("#" + i + j);
+                        let code = '';
+                        // if cell has class .dark, code = 'G'
+                        if (cell.hasClass('dark')) {
+                            code = 'G';
+                        } else if (cell.hasClass('light')) {
+                            code = 'L';
+                        } else if (cell.hasClass('none')) {
+                            code = 'N';
+                        } else {
+                            code = 'U';
+                        }
+                        row.push(cell.text() + code);
+                    }
+                    grid.push(row);
+                }
+                $.ajax({
+                    type: "POST",
+                    url: waffle_url,
+                    data: JSON.stringify(grid),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function (data) {
+                        // on success, update the grid with the solution
+                        for (var i = 0; i < 5; i++) {
+                            for (var j = 0; j < 5; j++) {
+                                let cell = $("#" + i + j);
+                                if (cell.hasClass('unselectable')) {
+                                    continue;
+                                }
+                                cell.text(data[i][j][0]);
+                                cell.addClass('dark');
+                                cell.removeClass('light');
+                                cell.removeClass('none');
+                            }
+                        }
+                    },
+                    failure: function (errMsg) {
+                        alert(errMsg);
+                    }
+                });
+            });
+        });
+        function cycle_cell(cell) {
+            // if cell has class .dark, remove .dark and add .light
+            if (cell.hasClass('dark')) {
+                cell.removeClass('dark');
+                cell.addClass('light');
+                // if cell has class .light, remove .light and add .none
+            } else if (cell.hasClass('light')) {
+                cell.removeClass('light');
+                cell.addClass('none');
+                // if cell has class .none, remove .none and add .dark
+            } else if (cell.hasClass('none')) {
+                cell.removeClass('none');
+                cell.addClass('dark');
+            }
+        }
+        // jquery cycle background color through classes .dark, .light and .none when user clicks on the cell
+        $(document).ready(function () {
+            $("td").click(function () {
+                // if cell has class .unselectable ignore click
+                if ($(this).hasClass("unselectable")) {
+                    return;
+                }
+                // select cell if it does not have selected class
+                if (!$(this).hasClass("selected")) {
+                    // remove selected class from all cells
+                    $("td").removeClass("selected");
+                    $(this).addClass("selected");
+                } else {
+                    cycle_cell($(this));
+                }
+            });
+        });
+        // jquery when a user types a key and a cell is selected, set the contents of that cell to the upper case key
+        $(document).ready(function () {
+            $(document).keydown(function (event) {
+                // if event is tab, cycle through the cells
+                if (event.which == 9) {
+                    event.preventDefault();
+                    let selected = $(".selected");
+                    if (selected.length == 0) {
+                        return;
+                    }
+                    // select next cell
+                    let next = selected.next();
+                    // if next cell does not exist, select first cell
+                    if (next.length == 0) {
+                        next = $("td").first();
+                    }
+                    // if next cell is unselectable, select next cell
+                    if (next.hasClass("unselectable")) {
+                        next = next.next();
+                    }
+                    // if next cell does not exist, select first cell
+                    if (next.length == 0) {
+                        next = $("td").first();
+                    }
+                    // remove selected class from all cells
+                    $("td").removeClass("selected");
+                    // add selected class to next cell
+                    next.addClass("selected");
+                    return;
+                }
+                let disabled = false;
+                $("td").each(function () {
+                    if ($(this).hasClass("selected")) {
+                        console.log(event.key);
+                        console.log(event.which);
+                        // if keystroke is non-alphabetic, delete contents of cell
+                        if ((event.which >= 65 && event.which <= 90) || (event.which >= 97 && event.which <= 122)) {
+                            let key = event.key.toUpperCase();
+                            if (key == $(this).text()) {
+                                cycle_cell($(this));
+                            } else {
+                                $(this).text(key);
+                            }
+                        } else {
+                            $(this).text("");
+                        }
+                    }
+                    if (!$(this).hasClass("unselectable")) {
+                        if ($(this).text() == "") {
+                            disabled = true;
+                        }
+                    }
+                });
+                $("#solve").prop("disabled", disabled);
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <h1>Waffle</h1>
+    <!-- 5 by 5 grid of squares each 32 pixels square IDs by row and column -->
+    <table>
+        <tr>
+            <td class="dark" id="00">S</td>
+            <td class="none" id="01">C</td>
+            <td class="none" id="02">G</td>
+            <td class="none" id="03">O</td>
+            <td class="dark" id="04">L</td>
+        </tr>
+        <tr>
+            <td class="dark" id="10">N</td>
+            <td class="unselectable" id="11"></td>
+            <td class="none" id="12">N</td>
+            <td class="unselectable" id="13"></td>
+            <td class="light" id="14">D</td>
+        </tr>
+        <tr>
+            <td class="light" id="20">I</td>
+            <td class="dark" id="21">N</td>
+            <td class="dark" id="22">D</td>
+            <td class="none" id="23">E</td>
+            <td class="light" id="24">E</td>
+        </tr>
+        <tr>
+            <td class="none" id="30">R</td>
+            <td class="unselectable" id="31"></td>
+            <td class="light" id="32">I</td>
+            <td class="unselectable" id="33"></td>
+            <td class="none" id="34">U</td>
+        </tr>
+        <tr>
+            <td class="dark" id="40">F</td>
+            <td class="none" id="41">F</td>
+            <td class="light" id="42">A</td>
+            <td class="light" id="43">R</td>
+            <td class="dark" id="44">E</td>
+        </tr>
+    </table>
+    <!-- green rounded border button centered beneath table saying "Solve" in big letters -->
+    <div>
+        <button id="solve"
+            style="border-radius: 5px; border: 3px solid green; font-size: 32px; font-family: Arial, sans-serif; padding: 10px;">Solve</button>
+        <button id="reset"
+            style="border-radius: 5px; border: 3px solid green; font-size: 32px; font-family: Arial, sans-serif; padding: 10px;">Reset</button>
+    </div>
+</body>
+
+</html>

@@ -36,7 +36,7 @@ rule_list = [
     Rule(lambda guess, _: guess[0] == 'g', lambda px, p: px.gen != p.gen, lambda p: "!!!Removing gen different from {}".format(p.gen)),
     Rule(lambda guess, _: guess[0] == 'u', lambda px, p: px.gen <= p.gen, lambda p: "!!!Removing gen less than or equal to {}".format(p.gen)),
     Rule(lambda guess, _: guess[0] == 'd', lambda px, p: px.gen >= p.gen, lambda p: "!!!Removing gen greater than or equal to {}".format(p.gen)),
-    Rule(lambda guess, p: guess[1:3] == 'yx' or (guess[1:3] == 'xx' and len(p.type) == 1), lambda px, _: len(px.type) == 1, lambda p: "!!!Removing pokemon with just one type"),
+    Rule(lambda guess, p: guess[1:3] == 'yx' or (guess[1:3] == 'xx' and len(p.type) == 1), lambda px, _: len(px.type) == 1, lambda _: "!!!Removing pokemon with just one type"),
     Rule(lambda guess, _: guess[3] == 'g', lambda px, p: px.height != p.height, lambda p: "!!!Removing height different from {}".format(p.height)),
     Rule(lambda guess, _: guess[3] == 'u', lambda px, p: px.height <= p.height, lambda p: "!!!Removing height less than or equal to {}".format(p.height)),
     Rule(lambda guess, _: guess[3] == 'd', lambda px, p: px.height >= p.height, lambda p: "!!!Removing height greater than or equal to {}".format(p.height)),
