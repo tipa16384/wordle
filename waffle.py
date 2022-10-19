@@ -1,5 +1,7 @@
 # import flask and jsonify
 from flask import Flask, jsonify, request
+from itertools import combinations
+import heapq
 
 solve_directions = [(0, 0, 0, 1), (0, 2, 1, 0), (4, 0, 0, 1), (0, 0, 1, 0), (0, 4, 1, 0), (2, 0, 0, 1)]
 
@@ -36,38 +38,72 @@ def index():
 def waffle():
     global potential_solutions
     potential_solutions = []
+
     # get the input grid
     input_grid = request.get_json()
-    print (input_grid)
-    output_grid = make_output_grid(input_grid)
+    print_grid ("input", input_grid)
+
     letters_in_grid = set([char[0] for row in input_grid for char in row])
     possibility_dictionary = make_possibility_dictionary(input_grid, letters_in_grid)
-    print (possibility_dictionary)
+    # print (possibility_dictionary)
 
     solve(input_grid, letters_in_grid, possibility_dictionary, solve_directions)
 
-    print ('{} potential solutions'.format(len(potential_solutions)))
+    # print ('{} potential solutions'.format(len(potential_solutions)))
     
     prime_letter_counts = make_letter_count_map(input_grid)
-    print (prime_letter_counts)
+    # print (prime_letter_counts)
 
     # if prime_letter_counts == 0, return a 500 error.
     if not potential_solutions:
         return jsonify({'error': 'No solutions found'}), 500
 
-    print_grid(potential_solutions[0])
+    # print_grid(potential_solutions[0])
     letter_counts = make_letter_count_map(potential_solutions[0])
-    print (letter_counts)
+    # print (letter_counts)
 
     for solution in potential_solutions:
         letter_counts = make_letter_count_map(solution)
         if letter_counts == prime_letter_counts:
             output_grid = solution
-            print_grid(solution)
+            print_grid("solution", solution)
+            find_path(normalize_grid(input_grid), normalize_grid(solution))
 
     # return the output grid
     return jsonify(output_grid)
 
+# use A* to find the shortest path between two grids
+def find_path(input_grid: str, output_grid: str):
+    heap = []
+
+    heapq.heappush(heap, (float(calc_distance(input_grid, output_grid)), input_grid, []))
+
+    while True:
+        distance, grid, path = heapq.heappop(heap)
+        if distance < 1:
+            print (path)
+            return
+
+        # make an array of indexes for positions where input_grid and output_grid differ
+        unmatched = [i for i in range(len(input_grid)) if input_grid[i] != output_grid[i]]
+
+        for swap in combinations(unmatched, 2):
+            new_grid = list(grid)
+            new_grid[swap[0]], new_grid[swap[1]] = new_grid[swap[1]], new_grid[swap[0]]
+            new_grid = ''.join(new_grid)
+            new_path = path + [swap]
+            heapq.heappush(heap, (float(calc_distance(new_grid, output_grid)) + float(len(new_path))/100.0, new_grid, new_path))
+
+# concatenate the first letters in each cell of the grid
+# to form a string
+def normalize_grid(input_grid):
+    return ''.join([char[0] for row in input_grid for char in row])
+
+# calculate the distance between two grids
+def calc_distance(input: str, solution: str):
+    return sum([1 for i in range(len(input)) if input[i] != solution[i]])
+
+# make a dictionary of letters and their counts in the grid
 def make_letter_count_map(input_grid):
     letter_count_map = {}
     for row in input_grid:
@@ -103,7 +139,8 @@ def solve(input_grid, letters_in_grid, possibility_dictionary, solve_directions)
             # print (dir, word)
             solve(new_grid, letters_in_grid, possibility_dictionary, solve_directions[1:])
 
-def print_grid(input_grid):
+def print_grid(label, input_grid):
+    print (label)
     for row in input_grid:
         print(''.join([char[0] if len(char) == 2 else ' ' for char in row]))
     print()
@@ -169,56 +206,11 @@ def process_word(word: str, guess: str, result: str) -> bool:
     # print (word, guess, result, nresult)
     return nresult == result
 
-def solve_puzzle(input_grid, dir, letters_in_grid):
-    if not dir:
-        print ('input grid: ', input_grid)
-        return
-
-    # make a copy of input_grid
-    # so we don't modify the original
-    new_grid = [row[:] for row in input_grid]
-
-    word, flags = extract_word(new_grid, dir[0])
-
-    # not_in_word is a list of letters in word for which the flags = 'N'
-    not_in_word = [word[i] for i in range(len(word)) if flags[i] == 'N']
-
-    # misplaced is a list of letters in word for which the flags = 'L'
-    misplaced = ''.join([word[i] for i in range(len(word)) if flags[i] == 'L' and i != 2])
-    potentially_misplaced = ''.join([word[i] for i in range(len(word)) if flags[i] == 'L' and i == 2])
-
-    print (word, flags, not_in_word, misplaced, potentially_misplaced)
-
-    solve_puzzle(new_grid, dir[1:], letters_in_grid)
-
-
 def extract_word(input_grid, dir):
     x, y, dx, dy = dir
     word = ''.join([input_grid[y + i * dy][x + i * dx][0] for i in range(5)])
     flags = ''.join([input_grid[y + i * dy][x + i * dx][1] for i in range(5)])
     return word, flags
-
-def make_output_grid(input_grid):
-    # create the output grid
-    output_grid = []
-    # loop through the rows of the input grid
-    for row in input_grid:
-        # create a new row for the output grid
-        output_row = []
-        # loop through the characters in the row
-        for char in row:
-            # get the row and column of the input character
-            row_index = input_grid.index(row)
-            col_index = row.index(char)
-            # get the characters in the same row and column as the input character
-            row_chars = input_grid[row_index]
-            col_chars = [input_grid[i][col_index][0] for i in range(len(input_grid))]
-            # add the characters to the output row
-            output_row.extend(row_chars)
-            output_row.extend(col_chars)
-        # add the output row to the output grid
-        output_grid.append(output_row)
-        return output_grid
 
 
 # if main module
