@@ -2,6 +2,7 @@
 from flask import Flask, jsonify, request
 from itertools import combinations
 import heapq
+from functools import lru_cache
 
 solve_directions = [(0, 0, 0, 1), (0, 2, 1, 0), (4, 0, 0, 1), (0, 0, 1, 0), (0, 4, 1, 0), (2, 0, 0, 1)]
 
@@ -73,35 +74,65 @@ def waffle():
     return jsonify(output_grid)
 
 # use A* to find the shortest path between two grids
-def find_path(input_grid: str, output_grid: str):
+def find_path(input_grid: list, output_grid: list):
     heap = []
 
-    heapq.heappush(heap, (float(calc_distance(input_grid, output_grid)), input_grid, []))
+    print ('input grid: {}'.format(input_grid))
+    print ('distance: {}'.format(calc_distance(input_grid, output_grid)))
+    heapq.heappush(heap, (calc_distance(input_grid, output_grid), ''.join(input_grid), []))
 
     while True:
         distance, grid, path = heapq.heappop(heap)
         if distance < 1:
-            print (path)
+            print (distance, len(path), path)
+            if len(path) <= 10:
+                return
+
+        if len(heap) > 1000000:
             return
 
+        # if len(heap) % 1000 == 0:
+        #     print ("heap: {} seen: {} hit: {}".format(len(heap), len(seen), hit))
+
+        if len(path) >= 10:
+            continue
+
+        # grid is array of letters in grid
+        grid = list(grid)
+
         # make an array of indexes for positions where input_grid and output_grid differ
-        unmatched = [i for i in range(len(input_grid)) if input_grid[i] != output_grid[i]]
+        unmatched = calc_unmatched(grid, output_grid)
 
         for swap in combinations(unmatched, 2):
-            new_grid = list(grid)
-            new_grid[swap[0]], new_grid[swap[1]] = new_grid[swap[1]], new_grid[swap[0]]
-            new_grid = ''.join(new_grid)
-            new_path = path + [swap]
-            heapq.heappush(heap, (float(calc_distance(new_grid, output_grid)) + float(len(new_path))/100.0, new_grid, new_path))
+            new_grid = swap_grid(grid, swap)
+            dist = calc_distance(new_grid, output_grid)
+            heapq.heappush(heap, (dist, ''.join(new_grid), path + [swap]))
+
+def calc_unmatched(input_grid, output_grid):
+    return [i for i in range(len(input_grid)) if input_grid[i] != output_grid[i]]
+
+def swap_grid(grid, swap):
+    new_grid = grid.copy()
+    new_grid[swap[0]], new_grid[swap[1]] = new_grid[swap[1]], new_grid[swap[0]]
+    return new_grid
 
 # concatenate the first letters in each cell of the grid
 # to form a string
-def normalize_grid(input_grid):
-    return ''.join([char[0] for row in input_grid for char in row])
+def normalize_grid(input_grid: list) -> list:
+    return [char[0] for row in input_grid for char in row]
+
+norm_dist = [
+    (0,1), (0,5), (2,5), (4,5), (10, 1), (20,1)
+]
 
 # calculate the distance between two grids
-def calc_distance(input: str, solution: str):
-    return sum([1 for i in range(len(input)) if input[i] != solution[i]])
+def calc_distance(input: list, solution: list) -> int:
+    distance = 0
+    for x, dx in norm_dist:
+        guess = [input[x+dx*i] for i in range(5)]
+        word = [solution[x+dx*i] for i in range(5)]
+        distance += process_norm_word(word, guess)
+    return distance
 
 # make a dictionary of letters and their counts in the grid
 def make_letter_count_map(input_grid):
@@ -205,6 +236,32 @@ def process_word(word: str, guess: str, result: str) -> bool:
     nresult = ''.join(nresult)
     # print (word, guess, result, nresult)
     return nresult == result
+
+def process_norm_word(word: list, guess: list) -> int:
+    nresult = [2] * len(word)
+    # make a dict ith key letter and value count for word
+    word_dict = {}
+    for letter in word:
+        if letter in word_dict:
+            word_dict[letter] += 1
+        else:
+            word_dict[letter] = 1
+    
+    # put a 'G' in nresult for each letter in word that matches the corresponding letter in guess
+    for i in range(len(word)):
+        if word[i] == guess[i]:
+            nresult[i] = 0
+            word_dict[guess[i]] -= 1
+
+    for i in range(len(word)):
+        if nresult[i] == 0:
+            continue
+        if guess[i] in word_dict and word_dict[guess[i]] > 0:
+            nresult[i] = 1
+            word_dict[guess[i]] -= 1
+
+    # print (word, guess, result, nresult)
+    return sum(nresult)
 
 def extract_word(input_grid, dir):
     x, y, dx, dy = dir
