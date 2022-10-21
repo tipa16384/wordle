@@ -64,7 +64,7 @@
                 $("#solve").prop("disabled", true);
                 for (var i = 0; i < 5; i++) {
                     for (var j = 0; j < 5; j++) {
-                        let cell = $("#" + i + j);
+                        let cell = $("#puzzle #" + i + j);
                         if (cell.hasClass("unselectable")) {
                             continue;
                         }
@@ -89,7 +89,7 @@
                 for (var i = 0; i < 5; i++) {
                     var row = [];
                     for (var j = 0; j < 5; j++) {
-                        let cell = $("#" + i + j);
+                        let cell = $("#puzzle #" + i + j);
                         let code = '';
                         // if cell has class .dark, code = 'G'
                         if (cell.hasClass('dark')) {
@@ -115,7 +115,7 @@
                         // on success, update the grid with the solution
                         for (var i = 0; i < 5; i++) {
                             for (var j = 0; j < 5; j++) {
-                                let cell = $("#" + i + j);
+                                let cell = $("#solution #" + i + j);
                                 if (cell.hasClass('unselectable')) {
                                     continue;
                                 }
@@ -149,7 +149,7 @@
         }
         // jquery cycle background color through classes .dark, .light and .none when user clicks on the cell
         $(document).ready(function () {
-            $("td").click(function () {
+            $("#puzzle td").click(function () {
                 // if cell has class .unselectable ignore click
                 if ($(this).hasClass("unselectable")) {
                     return;
@@ -157,7 +157,7 @@
                 // select cell if it does not have selected class
                 if (!$(this).hasClass("selected")) {
                     // remove selected class from all cells
-                    $("td").removeClass("selected");
+                    $("#puzzle td").removeClass("selected");
                     $(this).addClass("selected");
                 } else {
                     cycle_cell($(this));
@@ -178,7 +178,7 @@
                     let next = selected.next();
                     // if next cell does not exist, select first cell
                     if (next.length == 0) {
-                        next = $("td").first();
+                        next = $("#puzzle td").first();
                     }
                     // if next cell is unselectable, select next cell
                     if (next.hasClass("unselectable")) {
@@ -186,16 +186,16 @@
                     }
                     // if next cell does not exist, select first cell
                     if (next.length == 0) {
-                        next = $("td").first();
+                        next = $("#puzzle td").first();
                     }
                     // remove selected class from all cells
-                    $("td").removeClass("selected");
+                    $("#puzzle td").removeClass("selected");
                     // add selected class to next cell
                     next.addClass("selected");
                     return;
                 }
                 let disabled = false;
-                $("td").each(function () {
+                $("#puzzle td").each(function () {
                     if ($(this).hasClass("selected")) {
                         console.log(event.key);
                         console.log(event.which);
@@ -225,45 +225,87 @@
 
 <body>
     <h1>Waffle</h1>
-    <!-- 5 by 5 grid of squares each 32 pixels square IDs by row and column -->
-    <table>
-        <tr>
-            <td class="dark" id="00">P</td>
-            <td class="dark" id="01">I</td>
-            <td class="light" id="02">L</td>
-            <td class="none" id="03">T</td>
-            <td class="dark" id="04">A</td>
-        </tr>
-        <tr>
-            <td class="none" id="10">Z</td>
-            <td class="unselectable" id="11"></td>
-            <td class="none" id="12">I</td>
-            <td class="unselectable" id="13"></td>
-            <td class="light" id="14">N</td>
-        </tr>
-        <tr>
-            <td class="none" id="20">Z</td>
-            <td class="light" id="21">O</td>
-            <td class="dark" id="22">N</td>
-            <td class="none" id="23">O</td>
-            <td class="none" id="24">C</td>
-        </tr>
-        <tr>
-            <td class="none" id="30">A</td>
-            <td class="unselectable" id="31"></td>
-            <td class="dark" id="32">A</td>
-            <td class="unselectable" id="33"></td>
-            <td class="none" id="34">G</td>
-        </tr>
-        <tr>
-            <td class="dark" id="40">H</td>
-            <td class="light" id="41">V</td>
-            <td class="light" id="42">A</td>
-            <td class="light" id="43">L</td>
-            <td class="dark" id="44">E</td>
-        </tr>
-    </table>
-    <!-- green rounded border button centered beneath table saying "Solve" in big letters -->
+    <div style="display:inline-block">
+        <!-- 5 by 5 grid of squares each 32 pixels square IDs by row and column -->
+        <table id="puzzle">
+            <tr>
+                <td class="dark" id="00">P</td>
+                <td class="dark" id="01">I</td>
+                <td class="light" id="02">L</td>
+                <td class="none" id="03">T</td>
+                <td class="dark" id="04">A</td>
+            </tr>
+            <tr>
+                <td class="none" id="10">Z</td>
+                <td class="unselectable" id="11"></td>
+                <td class="none" id="12">I</td>
+                <td class="unselectable" id="13"></td>
+                <td class="light" id="14">N</td>
+            </tr>
+            <tr>
+                <td class="none" id="20">Z</td>
+                <td class="light" id="21">O</td>
+                <td class="dark" id="22">N</td>
+                <td class="none" id="23">O</td>
+                <td class="none" id="24">C</td>
+            </tr>
+            <tr>
+                <td class="none" id="30">A</td>
+                <td class="unselectable" id="31"></td>
+                <td class="dark" id="32">A</td>
+                <td class="unselectable" id="33"></td>
+                <td class="none" id="34">G</td>
+            </tr>
+            <tr>
+                <td class="dark" id="40">H</td>
+                <td class="light" id="41">V</td>
+                <td class="light" id="42">A</td>
+                <td class="light" id="43">L</td>
+                <td class="dark" id="44">E</td>
+            </tr>
+        </table>
+    </div>
+    <div style="display:inline-block">
+        <!-- 5 by 5 grid of squares each 32 pixels square IDs by row and column -->
+        <table id="solution">
+            <tr>
+                <td class="dark" id="00">P</td>
+                <td class="dark" id="01">I</td>
+                <td class="light" id="02">L</td>
+                <td class="none" id="03">T</td>
+                <td class="dark" id="04">A</td>
+            </tr>
+            <tr>
+                <td class="none" id="10">Z</td>
+                <td class="unselectable" id="11"></td>
+                <td class="none" id="12">I</td>
+                <td class="unselectable" id="13"></td>
+                <td class="light" id="14">N</td>
+            </tr>
+            <tr>
+                <td class="none" id="20">Z</td>
+                <td class="light" id="21">O</td>
+                <td class="dark" id="22">N</td>
+                <td class="none" id="23">O</td>
+                <td class="none" id="24">C</td>
+            </tr>
+            <tr>
+                <td class="none" id="30">A</td>
+                <td class="unselectable" id="31"></td>
+                <td class="dark" id="32">A</td>
+                <td class="unselectable" id="33"></td>
+                <td class="none" id="34">G</td>
+            </tr>
+            <tr>
+                <td class="dark" id="40">H</td>
+                <td class="light" id="41">V</td>
+                <td class="light" id="42">A</td>
+                <td class="light" id="43">L</td>
+                <td class="dark" id="44">E</td>
+            </tr>
+        </table>
+    </div>
+            <!-- green rounded border button centered beneath table saying "Solve" in big letters -->
     <div>
         <button id="solve"
             style="border-radius: 5px; border: 3px solid green; font-size: 32px; font-family: Arial, sans-serif; padding: 10px;">Solve</button>
