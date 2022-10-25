@@ -2,9 +2,8 @@
 from flask import Flask, jsonify, request
 from itertools import combinations
 import heapq
+from threading import Thread, active_count
 import time
-import math
-import random
 
 solve_directions = [(0, 0, 0, 1), (0, 2, 1, 0), (4, 0, 0, 1),
                     (0, 0, 1, 0), (0, 4, 1, 0), (2, 0, 0, 1)]
@@ -21,50 +20,25 @@ wordle_words = [word.upper() for word in wordle_words]
 # start an http server to listen for requests on the /terrachat endpoint
 app = Flask(__name__)
 
-class MonteNode:
-    def __init__(self, swap=None, parent=None):
-        self.swap = swap
-        self.parent = parent
-        self.children = []
-        self.visits = 1
-        self.wins = 0
-
-    def add_child(self, child):
-        self.children.append(child)
-
-    def update(self, win):
-        self.visits += 1
-        if win:
-            self.wins += 1
-
-    def get_ucb(self):
-        if self.visits == 0:
-            return 0
-        return self.wins / self.visits + 1.414 * (2 * math.log(self.parent.visits) / self.visits) ** 0.5
-
-    def get_best_child(self):
-        return max(self.children, key=lambda child: child.get_ucb())
-    
-    def get_best_child_random(self):
-        # sum the ucb values of all children
-        ucb_sum = sum(child.get_ucb() for child in self.children)
-        # pick a random number between 0 and the sum of the ucb values
-        rand = random.random() * ucb_sum
-        # loop through the children and subtract the ucb value of each child from the random number
-        # if the random number is less than or equal to 0, return the child
-        for child in self.children:
-            rand -= child.get_ucb()
-            if rand <= 0:
-                return child
-        # return random child if no child is found
-        return random.choice(self.children)
-
-
 # add a flask endpoint that returns the file index.html when the user visits the root url
 @app.route('/')
 def index():
     "return the waffle.html file"
     return app.send_static_file('waffle.html')
+
+
+# class of type Thread
+class SolveThread(Thread):
+    def __init__(self, input_grid, output_grid, max_depth=10):
+        Thread.__init__(self)
+        self.input_grid = input_grid
+        self.output_grid = output_grid
+        self.max_depth = max_depth
+        self.result = None
+    
+    def run(self):
+        self.result = find_path(self.input_grid, self.output_grid, self.max_depth)
+        print ("I am done -- max_depth = %d and do I have a result? %s" % (self.max_depth, 'Yes' if self.result is not None else 'No'))
 
 
 # Flask endpoint that takes a grid of 25 characters and returns a grid of 25 characters
@@ -103,83 +77,44 @@ def waffle():
         if letter_counts == prime_letter_counts:
             output_grid = solution
             print_grid("solution", solution)
-            find_path(normalize_grid(input_grid), normalize_grid(solution))
+            threads = [SolveThread(normalize_grid(input_grid), normalize_grid(output_grid), i+10) for i in range(0, 5)]
+            for thread in threads:
+                thread.start()
+            # sleep 1 while any threads are running
+            while any([thread.is_alive() for thread in threads]):
+                time.sleep(1)
+            result_heap = []
+            for thread in threads:
+                if thread.result:
+                    heapq.heappush(result_heap, thread.result)
+            if result_heap:
+                result = heapq.heappop(result_heap)
+                print (result)
 
     # return the output grid
     return jsonify(output_grid)
 
-def update_monte_node(node, win):
-    "update the monte node with the win or loss"
-    while True:
-        node.update(win)
-        if node.parent:
-            node = node.parent
-        else:
-            break
+def find_path(input_grid: list, output_grid: list, max_depth=10):
+    "find the shortest path between two grids"
 
-def monte_find(input_grid: list, output_grid: list):
-    "find the shortest path between two grids using monte carlo tree search"
-    root = MonteNode()
-    best_move_length = 100
-    best_move_node = None
-    best_distance = 100
-
-    # get the current time
     start_time = time.time()
 
-    # while elapsed time is less than 10 seconds
-    while time.time() - start_time < 60:
-        # grid = copy of input_grid
-        grid = input_grid.copy()
-        
-        current_node = root
-        moves = 0
-        while True:
-            distance = calc_distance(grid, output_grid)
-            if distance < best_distance:
-                best_distance = distance
-                best_move_length = moves
-                best_move_node = current_node
-                update_monte_node(current_node, True)
-                print(distance, moves)
-                print ("Wins: ", root.wins, "Visits: ", root.visits)
-                break
-            moves += 1
-            # if moves > 15:
-            #     update_monte_node(current_node, False)
-            #     break
-            if not current_node.children:
-                for swap in combinations(calc_unmatched(grid, output_grid), 2):
-                    new_node = MonteNode(swap, current_node)
-                    current_node.add_child(new_node)
-            if not current_node.children:
-                update_monte_node(current_node, False)
-                break
-            current_node = current_node.get_best_child_random()
-            grid = swap_grid(grid, current_node.swap)
-    
-    print ("best move length", best_move_length)
-
-
-def find_path(input_grid: list, output_grid: list):
-    "find the shortest path between two grids"
     heap = []
 
-    heapq.heappush(heap, (calc_distance(
-        input_grid, output_grid), input_grid, []))
+    heapq.heappush(heap, (calc_distance(input_grid, output_grid), input_grid, []))
 
     while True:
         distance, grid, path = heapq.heappop(heap)
-        bonus = len(heap) // 100000
         if distance < 1:
-            print(distance, len(path), path)
-            if len(path) <= 10+bonus:
-                return
+            if len(path) <= max_depth:
+                return (len(path), path)
 
-        if len(heap) > 500000:
-            return
+        # if elapsed time is over five seconds, return None
+        if time.time() - start_time > 5:
+            return None
 
-        if len(path) >= 10+bonus:
+        if len(path) >= max_depth:
+            time.sleep(0)
             continue
 
         # make an array of indexes for positions where input_grid and output_grid differ
