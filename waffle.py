@@ -105,15 +105,17 @@ def find_path(input_grid: list, output_grid: list, max_depth=10):
 
     while True:
         distance, grid, path = heapq.heappop(heap)
+        path_len = len(path)
+
         if distance < 1:
-            if len(path) <= max_depth:
-                return (len(path), path)
+            if path_len <= max_depth:
+                return (path_len, path)
 
         # if elapsed time is over five seconds, return None
-        if time.time() - start_time > 5:
+        if time.time() - start_time > 20:
             return None
 
-        if len(path) >= max_depth:
+        if path_len >= max_depth:
             time.sleep(0)
             continue
 
@@ -288,12 +290,12 @@ def process_norm_word(word: list, guess: list) -> int:
             nresult[i] = 0
             word_dict[guess[i]] -= 1
 
-    for i in range(len(word)):
-        if nresult[i] == 0:
-            continue
-        if guess[i] in word_dict and word_dict[guess[i]] > 0:
-            nresult[i] = 1
-            word_dict[guess[i]] -= 1
+    # for i in range(len(word)):
+    #     if nresult[i] == 0:
+    #         continue
+    #     if guess[i] in word_dict and word_dict[guess[i]] > 0:
+    #         nresult[i] = 1
+    #         word_dict[guess[i]] -= 1
 
     return sum(nresult)
 
