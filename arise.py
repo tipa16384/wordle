@@ -1,5 +1,6 @@
 import sys
 from collections import defaultdict
+from processword import process_word
 
 word_file_name = 'wordle.txt'
 deutsch = False
@@ -60,33 +61,6 @@ def sort_words_by_score(word_map: dict) -> list:
     valid_word_list = list(word for word in word_map if word_map[word])
     letter_score = get_letter_score(valid_word_list)
     return sorted(valid_word_list, key=lambda word: sum(letter_score[letter] for letter in set(word)), reverse=True)
-
-def process_word(word: str, guess: str, result: str) -> bool:
-    nw, ng, nr = '', '', ''
-    # look for direct matches
-    for i in range(len(word)):
-        w = word[i]
-        g = guess[i]
-        r = result[i]
-        if r == 'g':
-            if w != g:
-                return False
-        else:
-            nw += w
-            ng += g
-            nr += r
-    # if we used all the letters, return true
-    if not nw: return True
-    # look for matches in the rest of the word
-    for i in range(len(nw)):
-        w = nw[i]
-        g = ng[i]
-        r = nr[i]
-        if r == 'y' and (w == g or g not in nw):
-            return False
-        if r == 'b' and g in nw:
-            return False
-    return True
 
 def make_guess(word_map: dict) -> bool:
     word_list = sort_words_by_score(word_map)
