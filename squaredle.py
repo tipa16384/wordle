@@ -1,3 +1,5 @@
+import re
+
 class Letter:
     all_letters = []
 
@@ -49,39 +51,62 @@ def is_word_in_puzzle(word, letter, seen = []):
             return True
     return False
 
-# read allgoodwords.txt into the list good_words
-with open('allgoodwords.txt', 'r') as f:
-    good_words = [line.strip() for line in f]
+def find_words():
+    # read allgoodwords.txt into the list good_words
+    with open('allgoodwords.txt', 'r') as f:
+        good_words = [line.strip() for line in f]
 
-# read square.txt into the list puzzle
-with open('square.txt', 'r') as f:
-    puzzle = [line.strip() for line in f]
+    # read square.txt into the list puzzle
+    with open('square.txt', 'r') as f:
+        puzzle = [line.strip() for line in f]
 
-for row, line in enumerate(puzzle):
-    for col, letter in enumerate(line):
-        # create a Letter object for each letter in the puzzle
-        letter = Letter(letter, row, col)
+    for row, line in enumerate(puzzle):
+        for col, letter in enumerate(line):
+            # create a Letter object for each letter in the puzzle
+            letter = Letter(letter, row, col)
 
-# get the list of all letters
-letters = Letter.all_letters
+    # get the list of all letters
+    letters = Letter.all_letters
 
-# make a map where the key is a letter and the value are all the letters that match
-letter_map = {}
-for letter in letters:
-    if letter.get_letter() not in letter_map:
-        letter_map[letter.get_letter()] = []
-    letter_map[letter.get_letter()].append(letter)
+    # make a map where the key is a letter and the value are all the letters that match
+    letter_map = {}
+    for letter in letters:
+        if letter.get_letter() not in letter_map:
+            letter_map[letter.get_letter()] = []
+        letter_map[letter.get_letter()].append(letter)
 
-# for every word in good_words
-for word in good_words:
-    # get the first letter
-    first_letter = word[0]
-    if first_letter not in letter_map:
-        continue
-    # get the list of letters that match the first letter
-    first_letter_list = letter_map[first_letter]
-    # for every letter in the list
-    for letter in first_letter_list:
-        if is_word_in_puzzle(word, letter):
-            print (word)
+    word_set = set()
 
+    # for every word in good_words
+    for word in good_words:
+        # get the first letter
+        first_letter = word[0]
+        if first_letter not in letter_map:
+            continue
+        # get the list of letters that match the first letter
+        first_letter_list = letter_map[first_letter]
+        # for every letter in the list
+        for letter in first_letter_list:
+            if is_word_in_puzzle(word, letter):
+                word_set.add(word)
+    
+    return word_set
+
+if __name__ == '__main__':
+    word_set = find_words()
+
+    print ("I have found", len(word_set), "words in the puzzle.")
+
+    # in a loop, ask the user for a regular expression. Return the matching words. If the input is empty, exit the loop.
+    while True:
+        regex = input('Enter a regular expression: ')
+        if not regex:
+            break
+        if not regex[0].isalpha():
+            print ("Invalid input.")
+            continue
+        answers = [word for word in word_set if re.match('^'+regex+'$', word)]
+        if not answers:
+            print ("No matches.")
+        else:
+            print ("Matches: " + ', '.join(answers))
