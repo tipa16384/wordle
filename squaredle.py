@@ -53,8 +53,11 @@ def is_word_in_puzzle(word, letter, seen = []):
 
 def find_words():
     # read allgoodwords.txt into the list good_words
-    with open('allgoodwords.txt', 'r') as f:
+    with open('words', 'r') as f:
         good_words = [line.strip() for line in f]
+    
+    # filter good_words to words with only lower case letters that are four or more letters long
+    good_words = [word for word in good_words if word.islower() and len(word) >= 4]
 
     # read square.txt into the list puzzle
     with open('square.txt', 'r') as f:
