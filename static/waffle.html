@@ -170,28 +170,35 @@
                 // if event is tab, cycle through the cells
                 if (event.which == 9) {
                     event.preventDefault();
+                    // "puzzle td" signals the selected cell. If no cell is selected, select the first cell.
+                    // if the cell is the last cell on the row, select the first cell on the next row.
+                    // if the cell is the last cell on the last row, select the first cell on the first row.
+                    // otherwise select the next cell on the same row.
+
                     let selected = $(".selected");
                     if (selected.length == 0) {
-                        return;
+                        $("#puzzle td").first().addClass("selected");
+                    } else {
+                        let id = selected.attr("id");
+                        let row = parseInt(id[0]);
+                        let col = parseInt(id[1]);
+                        // remove selected from all cells
+                        $("#puzzle td").removeClass("selected");
+                        if (col == 4) {
+                            if (row == 4) {
+                                $("#puzzle td").first().addClass("selected");
+                            } else {
+                                $("#puzzle #" + (row + 1) + "0").addClass("selected");
+                            }
+                        } else {
+                            // if the next cell is unselectable, select the next cell after that
+                            if ($("#puzzle #" + row + (col + 1)).hasClass("unselectable")) {
+                                $("#puzzle #" + row + (col + 2)).addClass("selected");
+                            } else {
+                                $("#puzzle #" + row + (col + 1)).addClass("selected");
+                            }
+                        }
                     }
-                    // select next cell
-                    let next = selected.next();
-                    // if next cell does not exist, select first cell
-                    if (next.length == 0) {
-                        next = $("#puzzle td").first();
-                    }
-                    // if next cell is unselectable, select next cell
-                    if (next.hasClass("unselectable")) {
-                        next = next.next();
-                    }
-                    // if next cell does not exist, select first cell
-                    if (next.length == 0) {
-                        next = $("#puzzle td").first();
-                    }
-                    // remove selected class from all cells
-                    $("#puzzle td").removeClass("selected");
-                    // add selected class to next cell
-                    next.addClass("selected");
                     return;
                 }
                 let disabled = false;
@@ -305,7 +312,7 @@
             </tr>
         </table>
     </div>
-            <!-- green rounded border button centered beneath table saying "Solve" in big letters -->
+    <!-- green rounded border button centered beneath table saying "Solve" in big letters -->
     <div>
         <button id="solve"
             style="border-radius: 5px; border: 3px solid green; font-size: 32px; font-family: Arial, sans-serif; padding: 10px;">Solve</button>
