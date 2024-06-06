@@ -26,21 +26,6 @@ def index():
     "return the waffle.html file"
     return app.send_static_file('waffle.html')
 
-
-# class of type Thread
-class SolveThread(Thread):
-    def __init__(self, input_grid, output_grid, max_depth=10):
-        Thread.__init__(self)
-        self.input_grid = input_grid
-        self.output_grid = output_grid
-        self.max_depth = max_depth
-        self.result = None
-    
-    def run(self):
-        self.result = find_path(self.input_grid, self.output_grid, self.max_depth)
-        print ("I am done -- max_depth = %d and do I have a result? %s" % (self.max_depth, 'Yes' if self.result is not None else 'No'))
-
-
 # Flask endpoint that takes a grid of 25 characters and returns a grid of 25 characters
 # that is the same as the input grid but with the letters in the grid replaced with
 # the letters that are in the same row or column as the input letter.
@@ -77,84 +62,76 @@ def waffle():
         if letter_counts == prime_letter_counts:
             output_grid = solution
             print_grid("solution", solution)
-            threads = [SolveThread(normalize_grid(input_grid), normalize_grid(output_grid), i+10) for i in range(0, 5)]
-            for thread in threads:
-                thread.start()
-            # sleep 1 while any threads are running
-            while any([thread.is_alive() for thread in threads]):
-                time.sleep(1)
-            result_heap = []
-            for thread in threads:
-                if thread.result:
-                    heapq.heappush(result_heap, thread.result)
-            if result_heap:
-                result = heapq.heappop(result_heap)
-                print (result)
+            new_solution(normalize_grid(input_grid), normalize_grid(solution))
 
     # return the output grid
     return jsonify(output_grid)
 
-def find_path(input_grid: list, output_grid: list, max_depth=10):
-    "find the shortest path between two grids"
+def new_solution(current: list, goal: list, current_path = []) -> bool:
+    if len(current_path) > 10:
+        return False
+    
+    #print (f"{current}\n{goal}\n{current_path}\n")
+    if current == goal:
+        print_path (current_path)
+        return True
+    
+    # make a list of letters that don't match the goal
+    unmatched = [current[i] for i in range(len(current)) if current[i] != goal[i]]
+    # make a list of letters that are only once in the unmatched list
+    unique = [letter for letter in unmatched if unmatched.count(letter) == 1]
+    if not unique:
+        unique = unmatched
+    # for each letter in "unique", make a new_current with the letter swapped with the letter at
+    # its destination in the goal, add the letter to the path, and call new_solution with the new_current
+    for letter in unique:
+        # unsolved grid has spaces where goal and current are the same
+        unsolved = [' ' if current[i] == goal[i] else current[i] for i in range(len(current))]
+        unsolved_goal = [' ' if current[i] == goal[i] else goal[i] for i in range(len(current))]
 
-    start_time = time.time()
+        #print (f"{list_to_string(unsolved)}\n{list_to_string(unsolved_goal)}\n")
 
-    heap = []
+        # find all the indexes of the letter in the unsolved grid
+        indexes = [i for i in range(len(unsolved)) if unsolved[i] == letter]
+        for index in indexes:
+            # final all the indexes of the letter in the goal grid
+            goal_indexes = [i for i in range(len(unsolved_goal)) if unsolved_goal[i] == letter]
+            for goal_index in goal_indexes:
+                new_current = [current[i] for i in range(len(current))]
+                goal_letter = unsolved[goal_index]
+                # swap the letter in the unsolved grid with the letter in the goal grid
+                new_current[index], new_current[goal_index] = new_current[goal_index], new_current[index]
+                if new_solution(new_current, goal, current_path + [(letter, index, goal_letter, goal_index)]):
+                    return True
+    
+    return False
 
-    heapq.heappush(heap, (calc_distance(input_grid, output_grid), input_grid, []))
+print_template = '...... . ....... . ......'
 
-    while True:
-        distance, grid, path = heapq.heappop(heap)
-        path_len = len(path)
+def print_path(path: list):
+    "print the path"
 
-        if distance < 1:
-            if path_len <= max_depth:
-                return (path_len, path)
+    for row in range(5):
+        out_s = ''
+        for letter, index, goal_letter, goal_index in path:
+            ri = row * 5
+            rj = (row + 1) * 5
+            slice = print_template[ri:rj]
+            if index >= ri and index < rj:
+                slice = slice[:index - ri] + letter + slice[index - ri + 1:]
+            if goal_index >= ri and goal_index < rj:
+                slice = slice[:goal_index - ri] + goal_letter + slice[goal_index - ri + 1:]
+            out_s += f' {slice} '
+        print(out_s)
+    print()
 
-        # if elapsed time is over five seconds, return None
-        if time.time() - start_time > 20:
-            return None
-
-        if path_len >= max_depth:
-            time.sleep(0)
-            continue
-
-        # make an array of indexes for positions where input_grid and output_grid differ
-        unmatched = calc_unmatched(grid, output_grid)
-
-        for swap in combinations(unmatched, 2):
-            new_grid = swap_grid(grid, swap)
-            dist = calc_distance(new_grid, output_grid)
-            heapq.heappush(heap, (dist, new_grid, path + [swap]))
-
-
-def calc_unmatched(input_grid, output_grid):
-    "return the indices of the letters in the input grid that do not match the output grid"
-    return [i for i in range(len(input_grid)) if input_grid[i] != output_grid[i]]
-
-
-def swap_grid(grid, swap):
-    "return a new grid with the letters at the given indexes swapped"
-    new_grid = grid.copy()
-    new_grid[swap[0]], new_grid[swap[1]] = new_grid[swap[1]], new_grid[swap[0]]
-    return new_grid
-
+def list_to_string(input_list: list) -> str:
+    "convert a list of letters to a string"
+    return ''.join(input_list)
 
 def normalize_grid(input_grid: list) -> list:
     "flatten the letter grid into a list of letters"
     return [char[0] for row in input_grid for char in row]
-
-
-def calc_distance(input: list, solution: list) -> int:
-    """calculate the distance between two grids.  A letter in the same position is
-worth 0 points.  A letter in the same word but a different position is worth
-1 point.  A letter not in the word is worth 2 points."""
-    distance = 0
-    for x, dx in norm_dist:
-        guess = [input[x+dx*i] for i in range(5)]
-        word = [solution[x+dx*i] for i in range(5)]
-        distance += process_norm_word(word, guess)
-    return distance
 
 
 def make_letter_count_map(input_grid: list) -> dict:
