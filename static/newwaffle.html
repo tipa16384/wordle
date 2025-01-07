@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <title>Waffle</title>
+    <link rel="stylesheet" href="waffle.css">
+    <script src="waffle.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Waffle</h1>
+        <div class="grids">
+            <div class="grid-container">
+                <h2>Puzzle</h2>
+                <table id="puzzle">
+                    <tr>
+                        <td class="dark" id="00">P</td>
+                        <td class="dark" id="01">I</td>
+                        <td class="light" id="02">L</td>
+                        <td class="none" id="03">T</td>
+                        <td class="dark" id="04">A</td>
+                    </tr>
+                    <tr>
+                        <td class="none" id="10">Z</td>
+                        <td class="unselectable" id="11"></td>
+                        <td class="none" id="12">I</td>
+                        <td class="unselectable" id="13"></td>
+                        <td class="light" id="14">N</td>
+                    </tr>
+                    <tr>
+                        <td class="none" id="20">Z</td>
+                        <td class="light" id="21">O</td>
+                        <td class="dark" id="22">N</td>
+                        <td class="none" id="23">O</td>
+                        <td class="none" id="24">C</td>
+                    </tr>
+                    <tr>
+                        <td class="none" id="30">A</td>
+                        <td class="unselectable" id="31"></td>
+                        <td class="dark" id="32">A</td>
+                        <td class="unselectable" id="33"></td>
+                        <td class="none" id="34">G</td>
+                    </tr>
+                    <tr>
+                        <td class="dark" id="40">H</td>
+                        <td class="light" id="41">V</td>
+                        <td class="light" id="42">A</td>
+                        <td class="light" id="43">L</td>
+                        <td class="dark" id="44">E</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="grid-container">
+                <h2>Solution</h2>
+                <table id="solution">
+                    <tr>
+                        <td class="dark" id="00">P</td>
+                        <td class="dark" id="01">I</td>
+                        <td class="light" id="02">L</td>
+                        <td class="none" id="03">T</td>
+                        <td class="dark" id="04">A</td>
+                    </tr>
+                    <tr>
+                        <td class="none" id="10">Z</td>
+                        <td class="unselectable" id="11"></td>
+                        <td class="none" id="12">I</td>
+                        <td class="unselectable" id="13"></td>
+                        <td class="light" id="14">N</td>
+                    </tr>
+                    <tr>
+                        <td class="none" id="20">Z</td>
+                        <td class="light" id="21">O</td>
+                        <td class="dark" id="22">N</td>
+                        <td class="none" id="23">O</td>
+                        <td class="none" id="24">C</td>
+                    </tr>
+                    <tr>
+                        <td class="none" id="30">A</td>
+                        <td class="unselectable" id="31"></td>
+                        <td class="dark" id="32">A</td>
+                        <td class="unselectable" id="33"></td>
+                        <td class="none" id="34">G</td>
+                    </tr>
+                    <tr>
+                        <td class="dark" id="40">H</td>
+                        <td class="light" id="41">V</td>
+                        <td class="light" id="42">A</td>
+                        <td class="light" id="43">L</td>
+                        <td class="dark" id="44">E</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="solutionpath" width="600" height="64"></canvas>
+        </div>
+        <div class="buttons">
+            <button id="solve">Solve</button>
+            <button id="reset">Reset</button>
+        </div>
+    </div>
+</body>
+
+</html>

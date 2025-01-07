@@ -1,9 +1,7 @@
 # import flask and jsonify
 from flask import Flask, jsonify, request
 from itertools import combinations
-import heapq
-from threading import Thread, active_count
-import time
+import sys
 
 solve_directions = [(0, 0, 0, 1), (0, 2, 1, 0), (4, 0, 0, 1),
                     (0, 0, 1, 0), (0, 4, 1, 0), (2, 0, 0, 1)]
@@ -24,7 +22,17 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     "return the waffle.html file"
-    return app.send_static_file('waffle.html')
+    return app.send_static_file('newwaffle.html')
+
+@app.route('/waffle.css')
+def css():
+    "return the waffle.css file"
+    return app.send_static_file('waffle.css')
+
+@app.route('/waffle.js')
+def js():
+    "return the waffle.js file"
+    return app.send_static_file('waffle.js')
 
 # Flask endpoint that takes a grid of 25 characters and returns a grid of 25 characters
 # that is the same as the input grid but with the letters in the grid replaced with
@@ -57,39 +65,61 @@ def waffle():
 
     letter_counts = make_letter_count_map(potential_solutions[0])
 
+    solution_path = []
+
     for solution in potential_solutions:
         letter_counts = make_letter_count_map(solution)
         if letter_counts == prime_letter_counts:
             output_grid = solution
             print_grid("solution", solution)
-            new_solution(normalize_grid(input_grid), normalize_grid(solution))
+            _, solution_path = new_solution(normalize_grid(input_grid), normalize_grid(solution))
+
+    result = {'grid': output_grid, 'path': solution_path}
 
     # return the output grid
-    return jsonify(output_grid)
+    return jsonify(result)
 
-def new_solution(current: list, goal: list, current_path = []) -> bool:
+def new_solution(current: list, goal: list, current_path = []) -> tuple:
     if len(current_path) > 10:
-        return False
+        return (False, current_path)
     
     #print (f"{current}\n{goal}\n{current_path}\n")
     if current == goal:
         print_path (current_path)
-        return True
+        return (True, current_path)
     
     # make a list of letters that don't match the goal
     unmatched = [current[i] for i in range(len(current)) if current[i] != goal[i]]
     # make a list of letters that are only once in the unmatched list
     unique = [letter for letter in unmatched if unmatched.count(letter) == 1]
-    if not unique:
-        unique = unmatched
+    if unique: return handle_unique(unique, current, goal, current_path)
+
+    # print ("time to look for easy matches")
+    
+    # make a list of all the indices of letters in current that don't match the goal
+    indexes = [i for i in range(len(current)) if current[i] != goal[i]]
+    for l, r in combinations(indexes, 2):
+        if current[l] == goal[r] and current[r] == goal[l]:
+            new_current = [current[i] for i in range(len(current))]
+            new_current[l], new_current[r] = new_current[r], new_current[l]
+            is_solved, path = new_solution(new_current, goal, current_path + [(current[l], l, current[r], r)])
+            if is_solved:
+                return (is_solved, path)
+
+    print ("time for brute force")
+    sys.exit(1)
+
+#    return handle_unique(unmatched, current, goal, current_path)
+    return (False, current_path)
+
+def handle_unique(unique: str, current: list, goal: list, current_path: list) -> tuple:
+    "handle the unique letter"
     # for each letter in "unique", make a new_current with the letter swapped with the letter at
     # its destination in the goal, add the letter to the path, and call new_solution with the new_current
     for letter in unique:
         # unsolved grid has spaces where goal and current are the same
         unsolved = [' ' if current[i] == goal[i] else current[i] for i in range(len(current))]
         unsolved_goal = [' ' if current[i] == goal[i] else goal[i] for i in range(len(current))]
-
-        #print (f"{list_to_string(unsolved)}\n{list_to_string(unsolved_goal)}\n")
 
         # find all the indexes of the letter in the unsolved grid
         indexes = [i for i in range(len(unsolved)) if unsolved[i] == letter]
@@ -101,10 +131,11 @@ def new_solution(current: list, goal: list, current_path = []) -> bool:
                 goal_letter = unsolved[goal_index]
                 # swap the letter in the unsolved grid with the letter in the goal grid
                 new_current[index], new_current[goal_index] = new_current[goal_index], new_current[index]
-                if new_solution(new_current, goal, current_path + [(letter, index, goal_letter, goal_index)]):
-                    return True
+                is_solved, path = new_solution(new_current, goal, current_path + [(letter, index, goal_letter, goal_index)])
+                if is_solved:
+                    return (is_solved, path)
     
-    return False
+    return (False, current_path)
 
 print_template = '...... . ....... . ......'
 
@@ -174,9 +205,21 @@ def solve(input_grid, letters_in_grid, possibility_dictionary, solve_directions,
 
 def print_grid(label, input_grid):
     "print the grid with the given label"
+    # \033[{i}mHello, World!\033[0m
+    # 2 for G, 7 for Y
     print(label)
     for row in input_grid:
-        print(''.join([char[0] if len(char) == 2 else ' ' for char in row]))
+        outs = ''
+        for char in row:
+            if len(char) < 2:
+                outs += ' '
+            elif char[1] == 'G':
+                outs += f'\033[7m{char[0]}\033[0m'
+            elif char[1] == 'N':
+                outs += f'\033[2m{char[0]}\033[0m'
+            else:
+                outs += char[0]
+        print(outs)
     print()
 
 

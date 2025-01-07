@@ -1,0 +1,49 @@
+td {
+    border: none;
+    width: 50px;
+    height: 50px;
+    /* centered vertically and horizontally */
+    text-align: center;
+    vertical-align: middle;
+    /* font arial sans serif */
+    font-family: Arial, sans-serif;
+    /* font size 20px */
+    font-size: 32px;
+    /* border radius 5px */
+    border-radius: 5px;
+    /* borders inside content */
+    box-sizing: border-box;
+}
+
+.selected {
+    /* 3 px black border */
+    border: 3px solid black;
+}
+
+/* table cell background color dark green */
+.dark {
+    background-color: #006400;
+    /* text color white */
+    color: white;
+}
+
+.unselectable {
+    /* no border */
+    border: none;
+    /* bg color white */
+    background-color: white;
+}
+
+/* table cell background color yellow */
+.light {
+    background-color: #FFFF00;
+    /* text color black */
+    color: black;
+}
+
+/* table cell background color light gray */
+.none {
+    background-color: #D3D3D3;
+    /* text color black */
+    color: black;
+}
